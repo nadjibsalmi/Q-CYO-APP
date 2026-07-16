@@ -61,6 +61,7 @@ class ResultsCard extends StatelessWidget {
               _BudgetBanner(
                 withinBudget: result.withinBudget ?? false,
                 budget: result.budgetConstraintUsd!,
+                utilizationPercent: result.budgetUtilizationPercent,
               ),
             ],
             const SizedBox(height: 20),
@@ -142,7 +143,12 @@ class _QuantumStatusBanner extends StatelessWidget {
 class _BudgetBanner extends StatelessWidget {
   final bool withinBudget;
   final double budget;
-  const _BudgetBanner({required this.withinBudget, required this.budget});
+  final double? utilizationPercent;
+  const _BudgetBanner({
+    required this.withinBudget,
+    required this.budget,
+    this.utilizationPercent,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,18 +160,40 @@ class _BudgetBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(withinBudget ? Icons.check_circle : Icons.warning, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              withinBudget
-                  ? '✅ Within budget (\$${budget.toStringAsFixed(2)})'
-                  : '⚠️ Over budget (\$${budget.toStringAsFixed(2)})',
-              style: TextStyle(fontWeight: FontWeight.bold, color: color),
-            ),
+          Row(
+            children: [
+              Icon(withinBudget ? Icons.check_circle : Icons.warning, color: color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  withinBudget
+                      ? '✅ Within budget (\$${budget.toStringAsFixed(2)})'
+                      : '⚠️ Over budget (\$${budget.toStringAsFixed(2)})',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color),
+                ),
+              ),
+            ],
           ),
+          if (utilizationPercent != null) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: (utilizationPercent! / 100).clamp(0.0, 1.0),
+                minHeight: 8,
+                backgroundColor: color.withValues(alpha: 0.15),
+                valueColor: AlwaysStoppedAnimation(color),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${utilizationPercent!.toStringAsFixed(1)}% of budget used',
+              style: TextStyle(fontSize: 12, color: color),
+            ),
+          ],
         ],
       ),
     );

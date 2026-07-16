@@ -127,10 +127,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         onSubmit: _handleSubmit,
                       ),
                       const SizedBox(height: 20),
-                      if (_errorMessage.isNotEmpty && !_isConnectionError)
-                        _ErrorBanner(message: _errorMessage),
-                      if (_recommendation != null)
-                        ResultsCard(result: _recommendation!),
+                      // BEFORE: results and errors just popped in instantly
+                      // with no transition, which feels abrupt after a
+                      // loading spinner. AnimatedSwitcher gives a smooth
+                      // fade+slight-scale entrance instead.
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.97, end: 1.0).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                        child: Column(
+                          key: ValueKey(
+                            '${_errorMessage.isNotEmpty && !_isConnectionError}-${_recommendation != null}',
+                          ),
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_errorMessage.isNotEmpty && !_isConnectionError)
+                              _ErrorBanner(message: _errorMessage),
+                            if (_recommendation != null)
+                              ResultsCard(result: _recommendation!),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -32,6 +32,7 @@ class RecommendationResult {
 
   final double? budgetConstraintUsd;
   final bool? withinBudget;
+  final double? budgetUtilizationPercent;
 
   const RecommendationResult({
     required this.yieldPredictionMethod,
@@ -52,6 +53,7 @@ class RecommendationResult {
     this.timestamp,
     this.budgetConstraintUsd,
     this.withinBudget,
+    this.budgetUtilizationPercent,
   });
 
   factory RecommendationResult.fromJson(Map<String, dynamic> json) {
@@ -96,6 +98,9 @@ class RecommendationResult {
           ? asDouble(json['budget_constraint_usd'])
           : null,
       withinBudget: json['within_budget'] as bool?,
+      budgetUtilizationPercent: json['budget_utilization_percent'] != null
+          ? asDouble(json['budget_utilization_percent'])
+          : null,
     );
   }
 }

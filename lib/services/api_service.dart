@@ -47,20 +47,42 @@ class ApiService {
 
       _log('Response status: ${response.statusCode}');
 
-      if (response.statusCode != 200) {
+      // AUDIT FIX: previously checked response.statusCode BEFORE ever
+      // decoding the body - meaning any non-200 response (400 validation
+      // errors, 429 rate limits, 500s) threw a generic
+      // 'Server error: 400' and discarded the backend's actual,
+      // specific error message entirely. Verified live: submitting an
+      // invalid budget returns a real, helpful body
+      // ({"error":"Validation failed","details":["budget: Budget must
+      // be a positive number"]}) that a user would genuinely want to
+      // see, but this code never even looked at it. Now the body is
+      // decoded first (Flask consistently returns JSON error bodies for
+      // every failure case in this API), and its 'error'/'details'
+      // fields are used when present, falling back to a generic message
+      // only if the body isn't the expected shape.
+      Map<String, dynamic>? data;
+      try {
+        data = jsonDecode(response.body) as Map<String, dynamic>?;
+      } catch (_) {
+        data = null;
+      }
+
+      if (response.statusCode != 200 || data?['status'] == 'error') {
+        final serverMessage = data?['error']?.toString();
+        final details = data?['details'];
+        final detailText = (details is List && details.isNotEmpty)
+            ? details.join('; ')
+            : null;
+
         throw ApiException(
-          'Server error: ${response.statusCode}',
+          detailText ??
+              serverMessage ??
+              'Server error: ${response.statusCode}',
           statusCode: response.statusCode,
         );
       }
 
-      final Map<String, dynamic> data = jsonDecode(response.body);
-
-      if (data['status'] == 'error') {
-        throw ApiException(data['error']?.toString() ?? 'Unknown server error');
-      }
-
-      return RecommendationResult.fromJson(data);
+      return RecommendationResult.fromJson(data!);
     } on http.ClientException catch (e) {
       _log('Connection error: $e');
       throw ApiException(
@@ -72,8 +94,15 @@ class ApiService {
     } on ApiException {
       rethrow;
     } catch (e) {
+      // AUDIT FIX: previously interpolated the raw caught exception
+      // object directly into the user-facing message
+      // ('Failed to get recommendation: $e'), which could surface a raw
+      // Dart exception toString() (implementation details, not
+      // user-appropriate wording) in the UI. The real exception is still
+      // logged via _log for debugging; the user gets a stable, generic
+      // message instead.
       _log('Unexpected error: $e');
-      throw ApiException('Failed to get recommendation: $e');
+      throw const ApiException('An unexpected error occurred. Please try again.');
     }
   }
 

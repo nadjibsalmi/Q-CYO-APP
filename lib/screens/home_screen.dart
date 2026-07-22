@@ -71,9 +71,14 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      // AUDIT FIX: previously displayed the raw caught exception's
+      // toString() directly to the user ('Unexpected error: $e') -
+      // same anti-pattern already fixed in ApiService. A generic,
+      // stable message is shown instead; nothing is lost for debugging
+      // since ApiService already logs the real exception via _log.
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Unexpected error: $e';
+        _errorMessage = 'An unexpected error occurred. Please try again.';
         _isLoading = false;
       });
     }
